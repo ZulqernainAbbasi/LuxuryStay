@@ -49,7 +49,9 @@ const Navbar = () => {
 
                 {/* Logo */}
                 <Link to='/'>
-                    <img src={assets.logo} width="200" height="80" viewBox="0 0 157 40" fill="none" className={`h-9 ${isScrolled && "invert opacity-80"}`}/> 
+                    <h1 className='mb-4 text-3xl md:text-4xl font-serif font-bold tracking-wide text-gray-900'>
+                        Luxury<span className='text-amber-500'>Stay</span>
+                    </h1>
                 </Link>
 
                 {/* Desktop Nav */}
