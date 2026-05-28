@@ -3,10 +3,10 @@ import 'dotenv/config';
 import cors from 'cors';
 import connectDB from './configs/db.js';
 import dns from 'dns';
-import {clerkMiddleware} from '@clerk/express';
+import { clerkMiddleware } from '@clerk/express';
 import clerkWebhooks from './controllers/clerkWebhooks.js';
 
-dns.setServers(['1.1.1.1','8.8.8.8'])
+dns.setServers(['1.1.1.1', '8.8.8.8']);
 
 const app = express();
 
@@ -19,11 +19,11 @@ app.use(express.json());
 app.use(clerkMiddleware());
 
 // Routes
-app.use('/api/clerk',clerkWebhooks);
-app.get('/', (req, res) => res.send('API is Working'));
+app.use('/api/clerk', clerkWebhooks);
 
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.get('/', (req, res) => {
+    res.send('API is Working');
 });
+
+// IMPORTANT FOR VERCEL
+export default app;
