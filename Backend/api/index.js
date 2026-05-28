@@ -9,24 +9,28 @@ dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 const app = express();
 
-// MIDDLEWARES
+// CORS
 app.use(cors({
     origin: "*",
     credentials: true
 }));
 
-app.use(express.json());
+// IMPORTANT:
+// DO NOT use express.json() before webhook route
 
 // TEST ROUTE
 app.get("/", (req, res) => {
     res.send("API is Working");
 });
 
-// WEBHOOK ROUTE
+// CLERK WEBHOOK ROUTE
 app.post(
     "/api/clerk",
     express.raw({ type: "application/json" }),
     clerkWebhooks
 );
+
+// NORMAL JSON ROUTES
+app.use(express.json());
 
 export default app;

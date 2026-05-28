@@ -6,24 +6,31 @@ const clerkWebhooks = async (req, res) => {
 
     try {
 
-        // CONNECT DATABASE
+        // CONNECT DB
         await connectDB();
 
         // CREATE WEBHOOK
-        const whook = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
+        const whook = new Webhook(
+            process.env.CLERK_WEBHOOK_SECRET
+        );
 
-        // HEADERS
+        // GET HEADERS
         const headers = {
             "svix-id": req.headers["svix-id"],
             "svix-timestamp": req.headers["svix-timestamp"],
-            "svix-signature": req.headers["svix-signature"]
+            "svix-signature": req.headers["svix-signature"],
         };
 
-        // VERIFY WEBHOOK
-        const payload = whook.verify(req.body, headers);
+        // VERIFY PAYLOAD
+        const payload = whook.verify(
+            req.body,
+            headers
+        );
 
-        // GET DATA
+        // EXTRACT DATA
         const { data, type } = payload;
+
+        console.log("EVENT TYPE:", type);
 
         // SAFE USER DATA
         const userData = {
@@ -43,7 +50,6 @@ const clerkWebhooks = async (req, res) => {
             recentSearchCities: []
         };
 
-        console.log("EVENT:", type);
         console.log("USER DATA:", userData);
 
         // EVENTS
@@ -53,7 +59,7 @@ const clerkWebhooks = async (req, res) => {
 
                 await User.create(userData);
 
-                console.log("User Created");
+                console.log("USER CREATED");
 
                 break;
 
@@ -64,7 +70,7 @@ const clerkWebhooks = async (req, res) => {
                     userData
                 );
 
-                console.log("User Updated");
+                console.log("USER UPDATED");
 
                 break;
 
@@ -72,7 +78,7 @@ const clerkWebhooks = async (req, res) => {
 
                 await User.findByIdAndDelete(data.id);
 
-                console.log("User Deleted");
+                console.log("USER DELETED");
 
                 break;
 
