@@ -4,6 +4,8 @@ import "dotenv/config";
 import dns from "dns";
 
 import clerkWebhooks from "../controllers/clerkWebhooks.js";
+import userRouter from "../routes/userRoutes.js";
+import hotelRouter from "../routes/hotelRoutes.js";
 
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
@@ -15,13 +17,11 @@ app.use(cors({
     credentials: true
 }));
 
-// IMPORTANT:
-// DO NOT use express.json() before webhook route
-
-// TEST ROUTE
 app.get("/", (req, res) => {
     res.send("API is Working");
 });
+app.use('/api/user',userRouter)
+app.use('/api/hotels',hotelRouter)
 
 // CLERK WEBHOOK ROUTE
 app.post(
