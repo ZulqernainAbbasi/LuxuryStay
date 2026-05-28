@@ -1,6 +1,6 @@
+import { Webhook } from "svix";
 import User from "../models/user.js";
 import connectDB from "../configs/db.js";
-import { Webhook } from "svix";
 
 const clerkWebhooks = async (req, res) => {
 
@@ -20,40 +20,65 @@ const clerkWebhooks = async (req, res) => {
         };
 
         // VERIFY WEBHOOK
-        await whook.verify(JSON.stringify(req.body), headers);
+        const payload = whook.verify(req.body, headers);
 
         // GET DATA
-        const { data, type } = req.body;
+        const { data, type } = payload;
 
-        // USER DATA
+        // SAFE USER DATA
         const userData = {
             _id: data.id,
-            email: data.email_addresses[0].email_address,
-            username: `${data.first_name || ""} ${data.last_name || ""}`,
-            image: data.image_url
+
+            email:
+                data.email_addresses?.[0]?.email_address || "",
+
+            username:
+                `${data.first_name || ""} ${data.last_name || ""}`.trim()
+                || data.username
+                || "Unknown User",
+
+            image:
+                data.image_url || "",
+
+            recentSearchCities: []
         };
+
+        console.log("EVENT:", type);
+        console.log("USER DATA:", userData);
 
         // EVENTS
         switch (type) {
 
             case "user.created":
+
                 await User.create(userData);
+
                 console.log("User Created");
+
                 break;
 
             case "user.updated":
-                await User.findByIdAndUpdate(data.id, userData);
+
+                await User.findByIdAndUpdate(
+                    data.id,
+                    userData
+                );
+
                 console.log("User Updated");
+
                 break;
 
             case "user.deleted":
+
                 await User.findByIdAndDelete(data.id);
+
                 console.log("User Deleted");
+
                 break;
 
             default:
+
                 console.log("Unhandled Event");
-                break;
         }
 
         return res.status(200).json({
@@ -63,7 +88,10 @@ const clerkWebhooks = async (req, res) => {
 
     } catch (error) {
 
-        console.log("CLERK WEBHOOK ERROR:", error.message);
+        console.log(
+            "CLERK WEBHOOK ERROR:",
+            error.message
+        );
 
         return res.status(500).json({
             success: false,

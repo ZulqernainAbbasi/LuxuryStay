@@ -1,6 +1,7 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
+
     _id: {
         type: String,
         required: true
@@ -17,14 +18,13 @@ const userSchema = new mongoose.Schema({
     },
 
     image: {
-        type: String,
-        required: true
+        type: String
     },
 
     role: {
         type: String,
-        enum: ['user', 'admin', 'staff'],
-        default: 'user'
+        enum: ["user", "admin", "staff"],
+        default: "user"
     },
 
     recentSearchCities: [
@@ -35,6 +35,9 @@ const userSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-const User = mongoose.models.User || mongoose.model("User", userSchema);
+// IMPORTANT FIX
+const User =
+    mongoose.models.User ||
+    mongoose.model("User", userSchema);
 
 export default User;
