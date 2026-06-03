@@ -2,15 +2,15 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "api/index.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node api/index.js",
+    "dev": "nodemon api/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.22",
+    "@clerk/express": "^2.1.23",
     "@vercel/node": "^5.8.6",
     "cloudinary": "^2.10.0",
     "cors": "^2.8.6",

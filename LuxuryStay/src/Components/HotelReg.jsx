@@ -1,20 +1,65 @@
-import React from 'react'
-import { assets, cities } from '../assets/assets/assets'
+import React, { useState } from 'react';
+import axios from 'axios';
+import { useAuth } from '@clerk/clerk-react';
+import { assets, cities } from '../assets/assets/assets';
+import toast from 'react-hot-toast';
 
 const HotelReg = ({ setShowHotelReg }) => {
 
-    const handleSubmit = (e) => {
-        e.preventDefault()
+    const { getToken } = useAuth();
 
-        // Add your registration logic here
-        console.log("Hotel Registered")
-    }
+    const [name, setName] = useState("");
+    const [address, setAddress] = useState("");
+    const [contact, setContact] = useState("");
+    const [city, setCity] = useState("");
+
+    const onSubmitHandler = async (e) => {
+        e.preventDefault();
+
+        try {
+            const token = await getToken();
+
+            const { data } = await axios.post(
+                "/api/hotels",
+                {
+                    name,
+                    contact,
+                    address,
+                    city
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            if (data.success) {
+                toast.success(data.message || "Hotel registered successfully");
+                setShowHotelReg(false);
+            } else {
+                toast.error(data.message || "Registration failed");
+            }
+
+        } catch (error) {
+            console.error(error);
+
+            toast.error(
+                error?.response?.data?.message ||
+                error.message ||
+                "Something went wrong"
+            );
+        }
+    };
 
     return (
-        <div className='fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4'>
-
+        <div
+            onClick={() => setShowHotelReg(false)}
+            className='fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4'
+        >
             <form
-                onSubmit={handleSubmit}
+                onSubmit={onSubmitHandler}
+                onClick={(e) => e.stopPropagation()}
                 className='flex bg-white rounded-2xl overflow-hidden max-w-4xl w-full'
             >
 
@@ -29,12 +74,13 @@ const HotelReg = ({ setShowHotelReg }) => {
                 <div className='relative flex flex-col md:w-1/2 p-8 md:p-10 w-full'>
 
                     {/* Close Button */}
-                    <img
+                    <button
+                        type="button"
                         onClick={() => setShowHotelReg(false)}
-                        src={assets.closeIcon}
-                        alt="close-icon"
-                        className='absolute top-5 right-5 h-4 w-4 cursor-pointer'
-                    />
+                        className="absolute top-5 right-5 text-xl font-bold cursor-pointer"
+                    >
+                        ✕
+                    </button>
 
                     <h2 className='text-2xl font-semibold text-gray-800 mt-4'>
                         Register Your Hotel
@@ -52,6 +98,8 @@ const HotelReg = ({ setShowHotelReg }) => {
                         <input
                             id='name'
                             type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
                             placeholder='Type here'
                             className='border border-gray-300 rounded-lg w-full px-3 py-2.5 mt-1 outline-none focus:border-indigo-500'
                             required
@@ -70,6 +118,8 @@ const HotelReg = ({ setShowHotelReg }) => {
                         <input
                             id='contact'
                             type="text"
+                            value={contact}
+                            onChange={(e) => setContact(e.target.value)}
                             placeholder='Type here'
                             className='border border-gray-300 rounded-lg w-full px-3 py-2.5 mt-1 outline-none focus:border-indigo-500'
                             required
@@ -88,6 +138,8 @@ const HotelReg = ({ setShowHotelReg }) => {
                         <input
                             id='address'
                             type="text"
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
                             placeholder='Type here'
                             className='border border-gray-300 rounded-lg w-full px-3 py-2.5 mt-1 outline-none focus:border-indigo-500'
                             required
@@ -105,20 +157,25 @@ const HotelReg = ({ setShowHotelReg }) => {
 
                         <select
                             id="city"
+                            value={city}
+                            onChange={(e) => setCity(e.target.value)}
                             className='border border-gray-300 rounded-lg w-full px-3 py-2.5 mt-1 outline-none focus:border-indigo-500'
                             required
                         >
                             <option value="">Select City</option>
 
-                            {cities.map((city) => (
-                                <option value={city} key={city}>
+                            {cities.map((city, index) => (
+                                <option
+                                    key={`${city}-${index}`}
+                                    value={city}
+                                >
                                     {city}
                                 </option>
                             ))}
                         </select>
                     </div>
 
-                    {/* Button */}
+                    {/* Submit Button */}
                     <button
                         type='submit'
                         className='bg-indigo-500 hover:bg-indigo-600 transition-all text-white px-6 py-3 rounded-lg cursor-pointer mt-6 w-full'
@@ -129,7 +186,7 @@ const HotelReg = ({ setShowHotelReg }) => {
                 </div>
             </form>
         </div>
-    )
-}
+    );
+};
 
-export default HotelReg
+export default HotelReg;
