@@ -3,33 +3,60 @@ import User from "../models/user.js";
 import connectDB from "../configs/db.js";
 
 const clerkWebhooks = async (req, res) => {
+
     console.log("🔥 CLERK WEBHOOK RECEIVED");
 
     try {
+
         // ---------------------------------------
-        // 1. CHECK WEBHOOK SECRET
+        // CHECK SECRET
         // ---------------------------------------
+
         if (!process.env.CLERK_WEBHOOK_SECRET) {
             throw new Error(
-                "CLERK_WEBHOOK_SECRET is not configured"
+                "CLERK_WEBHOOK_SECRET is missing"
             );
         }
 
         // ---------------------------------------
-        // 2. CONNECT TO MONGODB
+        // CONNECT DATABASE
         // ---------------------------------------
+
         await connectDB();
 
         console.log("✅ MongoDB connected");
 
         // ---------------------------------------
-        // 3. GET SVIX HEADERS
+        // CHECK RAW BODY
         // ---------------------------------------
-        const svixId = req.headers["svix-id"];
-        const svixTimestamp = req.headers["svix-timestamp"];
-        const svixSignature = req.headers["svix-signature"];
 
-        if (!svixId || !svixTimestamp || !svixSignature) {
+        if (!req.rawBody) {
+            throw new Error(
+                "Raw webhook body is missing"
+            );
+        }
+
+        console.log(
+            "✅ Raw body received:",
+            req.rawBody.length,
+            "bytes"
+        );
+
+        // ---------------------------------------
+        // SVIX HEADERS
+        // ---------------------------------------
+
+        const svixId = req.headers["svix-id"];
+        const svixTimestamp =
+            req.headers["svix-timestamp"];
+        const svixSignature =
+            req.headers["svix-signature"];
+
+        if (
+            !svixId ||
+            !svixTimestamp ||
+            !svixSignature
+        ) {
             throw new Error(
                 "Missing required Svix headers"
             );
@@ -38,14 +65,15 @@ const clerkWebhooks = async (req, res) => {
         console.log("✅ Svix headers received");
 
         // ---------------------------------------
-        // 4. VERIFY CLERK WEBHOOK
+        // VERIFY WEBHOOK
         // ---------------------------------------
+
         const whook = new Webhook(
             process.env.CLERK_WEBHOOK_SECRET
         );
 
         const payload = whook.verify(
-            req.body,
+            req.rawBody,
             {
                 "svix-id": svixId,
                 "svix-timestamp": svixTimestamp,
@@ -53,28 +81,35 @@ const clerkWebhooks = async (req, res) => {
             }
         );
 
-        console.log("✅ Webhook signature verified");
+        console.log(
+            "✅ Webhook signature verified"
+        );
 
         // ---------------------------------------
-        // 5. GET EVENT DATA
+        // EVENT
         // ---------------------------------------
+
         const { data, type } = payload;
 
-        console.log("📩 EVENT TYPE:", type);
-        console.log("👤 CLERK USER ID:", data?.id);
+        console.log(
+            "📩 EVENT TYPE:",
+            type
+        );
 
-        if (!data?.id) {
-            throw new Error(
-                "Clerk user ID is missing"
-            );
-        }
+        console.log(
+            "👤 CLERK USER:",
+            data.id
+        );
 
         // ---------------------------------------
-        // 6. CREATE USER DATA
+        // USER DATA
         // ---------------------------------------
 
-        const firstName = data.first_name || "";
-        const lastName = data.last_name || "";
+        const firstName =
+            data.first_name || "";
+
+        const lastName =
+            data.last_name || "";
 
         const username =
             `${firstName} ${lastName}`.trim() ||
@@ -83,10 +118,12 @@ const clerkWebhooks = async (req, res) => {
 
         const email =
             data.email_addresses?.find(
-                (email) =>
-                    email.id === data.primary_email_address_id
+                email =>
+                    email.id ===
+                    data.primary_email_address_id
             )?.email_address ||
-            data.email_addresses?.[0]?.email_address ||
+            data.email_addresses?.[0]
+                ?.email_address ||
             "";
 
         const userData = {
@@ -104,41 +141,37 @@ const clerkWebhooks = async (req, res) => {
             recentSearchCities: []
         };
 
-        console.log("👤 USER DATA:", userData);
+        console.log(
+            "👤 USER DATA:",
+            userData
+        );
 
         // ---------------------------------------
-        // 7. HANDLE EVENTS
+        // HANDLE EVENTS
         // ---------------------------------------
 
         switch (type) {
 
-            // -----------------------------------
-            // USER CREATED
-            // -----------------------------------
             case "user.created": {
 
-                console.log("🟡 Creating user...");
-
-                // Prevent duplicate webhook issues
-                const existingUser = await User.findById(
-                    data.id
+                console.log(
+                    "🟡 Creating user..."
                 );
+
+                const existingUser =
+                    await User.findById(data.id);
 
                 if (existingUser) {
+
                     console.log(
-                        "⚠️ User already exists:",
-                        data.id
+                        "⚠️ User already exists"
                     );
 
-                    return res.status(200).json({
-                        success: true,
-                        message: "User already exists"
-                    });
+                    break;
                 }
 
-                const newUser = await User.create(
-                    userData
-                );
+                const newUser =
+                    await User.create(userData);
 
                 console.log(
                     "✅ USER CREATED:",
@@ -148,20 +181,24 @@ const clerkWebhooks = async (req, res) => {
                 break;
             }
 
-            // -----------------------------------
-            // USER UPDATED
-            // -----------------------------------
             case "user.updated": {
 
-                console.log("🟡 Updating user...");
+                console.log(
+                    "🟡 Updating user..."
+                );
 
                 const updatedUser =
                     await User.findByIdAndUpdate(
                         data.id,
                         {
-                            username: userData.username,
-                            email: userData.email,
-                            image: userData.image
+                            username:
+                                userData.username,
+
+                            email:
+                                userData.email,
+
+                            image:
+                                userData.image
                         },
                         {
                             new: true,
@@ -171,14 +208,12 @@ const clerkWebhooks = async (req, res) => {
 
                 if (!updatedUser) {
 
-                    console.log(
-                        "⚠️ User not found. Creating user..."
+                    await User.create(
+                        userData
                     );
 
-                    await User.create(userData);
-
                     console.log(
-                        "✅ User created from update event"
+                        "✅ User created from update"
                     );
 
                 } else {
@@ -192,80 +227,55 @@ const clerkWebhooks = async (req, res) => {
                 break;
             }
 
-            // -----------------------------------
-            // USER DELETED
-            // -----------------------------------
             case "user.deleted": {
 
-                console.log("🟡 Deleting user...");
+                console.log(
+                    "🟡 Deleting user..."
+                );
 
-                const deletedUser =
-                    await User.findByIdAndDelete(
-                        data.id
-                    );
+                await User.findByIdAndDelete(
+                    data.id
+                );
 
-                if (deletedUser) {
-
-                    console.log(
-                        "✅ USER DELETED:",
-                        data.id
-                    );
-
-                } else {
-
-                    console.log(
-                        "⚠️ User was not found:",
-                        data.id
-                    );
-                }
+                console.log(
+                    "✅ USER DELETED"
+                );
 
                 break;
             }
 
-            // -----------------------------------
-            // OTHER EVENTS
-            // -----------------------------------
             default:
 
                 console.log(
-                    "ℹ️ Unhandled Clerk event:",
+                    "ℹ️ Unhandled event:",
                     type
                 );
-
-                break;
         }
-
-        // ---------------------------------------
-        // 8. SUCCESS RESPONSE
-        // ---------------------------------------
 
         return res.status(200).json({
             success: true,
-            message: "Webhook processed successfully"
+            message:
+                "Webhook processed successfully"
         });
 
     } catch (error) {
-
-        // ---------------------------------------
-        // 9. DETAILED ERROR LOGGING
-        // ---------------------------------------
 
         console.error(
             "❌ CLERK WEBHOOK ERROR"
         );
 
         console.error(
-            "Error name:",
+            "Name:",
             error.name
         );
 
         console.error(
-            "Error message:",
+            "Message:",
             error.message
         );
 
         console.error(
-            "Error stack:",
+            "Stack:",
             error.stack
         );
 
